@@ -1,16 +1,30 @@
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
+
+public static class Extensions
+{
+    public static float Remap(this float value, float from1, float to1, float from2, float to2)
+    {
+        return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
+    }
+}
 
 public class PlayerController : MonoBehaviour
 {
     private Rigidbody rb;
-    private float jumpforce = 10, moveForce = 10;
+    [SerializeField] private float jumpforce = 10, moveForce = 10;
     private PlayerInput playerInput;
     private Vector2 input;
     public bool jumpIsTriggered;
     private GroundController groundController;
-    private float impulseValue = 5;
+    [SerializeField] private float impulseValue = 5;
+    public float velocity;
+    public float speedFovChange = 4;
+    public float speedMoveChange = 10;
+    public Vector2 camerasFov;
+    public Camera cam;
+
     #region
     //public LayerMask layer;
     //public static float customGravity = 9.81f;
@@ -26,7 +40,9 @@ public class PlayerController : MonoBehaviour
     {
         input = playerInput.actions["Move"].ReadValue<Vector2>();
 
-     
+        velocity = rb.linearVelocity.magnitude;
+
+        cam.fieldOfView = math.lerp(cam.fieldOfView, velocity.Remap(0, moveForce, camerasFov.x, camerasFov.y), Time.deltaTime * speedFovChange);
     }
     private void FixedUpdate()
     {
@@ -38,9 +54,9 @@ public class PlayerController : MonoBehaviour
             velocity.y = jumpforce;
             jumpIsTriggered = false;
         }
-        rb.linearVelocity = velocity; 
-  
+        rb.linearVelocity = math.lerp(rb.linearVelocity, velocity, Time.deltaTime * speedMoveChange);
     }
+
     public void JumpEvent(InputAction.CallbackContext callback)
     {
 
