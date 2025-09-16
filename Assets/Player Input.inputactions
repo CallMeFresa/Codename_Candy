@@ -103,7 +103,7 @@
                 {
                     "name": "",
                     "id": "cf3f8b3f-3551-4a27-b7fb-9ce6313ab74e",
-                    "path": "",
+                    "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -114,7 +114,7 @@
                 {
                     "name": "",
                     "id": "483615fa-3e29-4e2e-a9a8-4bc03edc3d43",
-                    "path": "",
+                    "path": "<Keyboard>/shift",
                     "interactions": "",
                     "processors": "",
                     "groups": "",

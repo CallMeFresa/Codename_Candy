@@ -8,7 +8,7 @@ public class GroundController : MonoBehaviour
     [SerializeField]
     private LayerMask groundLayerMask;
 
-    private CapsuleCollider capsuleCollider;
+    private SphereCollider capsuleCollider;
     public bool isGrounded { get; private set; }
     // los { ]} es para saber como la variable obtiene y setea su valor, por ejemplo, aqui
     // puede tener (get) su valor por comportamientos exteriores pero solo este script 
@@ -18,7 +18,7 @@ public class GroundController : MonoBehaviour
 
     private void Awake()
     {
-        capsuleCollider = GetComponent<CapsuleCollider>();
+        capsuleCollider = GetComponent<SphereCollider>();
     }
     private void Update()
     {
