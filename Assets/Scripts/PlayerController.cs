@@ -1,17 +1,14 @@
+using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public static class Extensions
-{
-    public static float Remap(this float value, float from1, float to1, float from2, float to2)
-    {
-        return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
-    }
-}
-
 public class PlayerController : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField] private Transform root;
+    [SerializeField] private Camera cam;
+
     public enum Estados { caminando, cargando, corriendo };
     [Header("Config estados")]
     [SerializeField] private Estados currentStatus;
@@ -22,33 +19,47 @@ public class PlayerController : MonoBehaviour
     [Header("Config cargando")]
     [SerializeField] private float timeCargando = 3;
     private float _timeCargando = 0;
+    [SerializeField] private bool checkLimitToCaminando = true;
     [SerializeField] private float limitToCaminando = 0.1f;
 
     [Header("Config impulso")]
     [SerializeField] private float impulso = 1000f;
+    private float _impulso;
     private bool _impulsed = false;
     private float _impulsedCooldown = 1;
 
+    [Header("Config combos")]
+    [SerializeField] private float maxToPerfect = 0.5f;
+    [SerializeField] private float impulsePerfect = 100f;
+    [SerializeField] private float maxToGood = 1;
+    [SerializeField] private float impulseOc = -10f;
+
     [Header("Character")]
-    [SerializeField] private Transform root;
     [SerializeField] private float rotationPower = 1;
 
     [Space]
-    private Rigidbody rb;
     [SerializeField] private float jumpforce = 10, moveForce = 10;
-    private PlayerInput playerInput;
-    private Vector2 input;
-    public bool jumpIsTriggered;
-    private GroundController groundController;
+    [SerializeField] private bool jumpIsTriggered;
     [SerializeField] private float impulseValue = 5;
-    public float velocity;
-    public Vector3 velocity3;
-    public float speedFovChange = 4;
-    public float speedMoveChange = 10;
-    public Vector2 camerasFov;
-    public Camera cam;
+    [SerializeField] private float currentVelocity;
+    [SerializeField] private Vector3 currentVelocity3;
 
-    #region
+    [Header("Config camera")]
+    [SerializeField] private float speedFovChange = 4;
+    [SerializeField] private float speedMoveChange = 10;
+    [SerializeField] private Vector2 camerasFov;
+
+    [Header("UI")]
+    [SerializeField] private TextMeshProUGUI text_speed;
+
+    private Rigidbody rb;
+    private PlayerInput playerInput;
+    private GroundController groundController;
+    private Vector2 input;
+    private Vector3 velocity;
+    private float collisionDiference;
+
+    #region ground layer gravity
     //public LayerMask layer;
     //public static float customGravity = 9.81f;
     //private float globalGravity = 1f;
@@ -81,6 +92,7 @@ public class PlayerController : MonoBehaviour
 
             case Estados.corriendo:
                 _impulsed = true;
+                _impulso = impulso;
                 moveForce = maxCorriendo;
                 break;
         }
@@ -90,9 +102,9 @@ public class PlayerController : MonoBehaviour
     {
         input = playerInput.actions["Move"].ReadValue<Vector2>();
 
-        velocity = rb.linearVelocity.magnitude;
+        currentVelocity = rb.linearVelocity.magnitude;
 
-        cam.fieldOfView = math.clamp(math.lerp(cam.fieldOfView, velocity.Remap(0, moveForce, camerasFov.x, camerasFov.y), Time.deltaTime * speedFovChange), camerasFov.x, camerasFov.y);
+        cam.fieldOfView = math.clamp(math.lerp(cam.fieldOfView, currentVelocity.Remap(0, maxCorriendo, camerasFov.x, camerasFov.y), Time.deltaTime * speedFovChange), camerasFov.x, camerasFov.y * 1.5f);
 
         if (currentStatus == Estados.cargando)
         {
@@ -110,22 +122,24 @@ public class PlayerController : MonoBehaviour
             _impulsedCooldown -= Time.deltaTime;
         }
 
-        if (_impulsedCooldown <= 0 && currentStatus == Estados.corriendo && velocity <= limitToCaminando)
+        if (checkLimitToCaminando && _impulsedCooldown <= 0 && currentStatus == Estados.corriendo && currentVelocity <= limitToCaminando)
         {
             SwithState(Estados.caminando);
         }
 
-        root.localEulerAngles = new Vector3(velocity3.y.Remap(-1, 1, rotationPower, -rotationPower), 0, 0);
+        root.localEulerAngles = new Vector3(currentVelocity3.y.Remap(-1, 1, rotationPower, -rotationPower), 0, 0);
+
+        text_speed.text = $"Speed: {currentVelocity * 3.6f}";
     }
 
     private void FixedUpdate()
     {
-        Vector3 velocity = new Vector3(input.x, 0f, input.y) * moveForce;
+        velocity = new Vector3(input.x, 0f, input.y) * moveForce;
         velocity.y = rb.linearVelocity.y;
 
         if (_impulsed)
         {
-            velocity = new Vector3(velocity.x + impulso, velocity.y, velocity.z + impulso);
+            velocity = new Vector3(velocity.x + _impulso, velocity.y, velocity.z + _impulso);
             _impulsed = false;
         }
 
@@ -136,7 +150,7 @@ public class PlayerController : MonoBehaviour
         }
 
         rb.linearVelocity = math.lerp(rb.linearVelocity, velocity, Time.deltaTime * speedMoveChange);
-        velocity3 = rb.linearVelocity;
+        currentVelocity3 = rb.linearVelocity;
     }
 
     public void OnJump(InputValue value)
@@ -149,9 +163,9 @@ public class PlayerController : MonoBehaviour
             jumpIsTriggered = true;
         }
 
-        #region
+        #region Jump
         //if (callback.performed && isGrounded == true)
-        //{ b
+        //{
         //    Vector3 gravity = globalGravity * customGravity * Vector3.up;
         //    rb.AddForce(gravity * jumpforce , ForceMode.Acceleration);
         //    Debug.Log("Salto ctm" + gravity);
@@ -173,6 +187,31 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        //Debug.LogWarning(collision.GetContact(0).normal);
+        /// el jugador debe tener pasar un tiempo en el aire,
+        /// para que la proxima caida, ya si cuente el combo,
+        /// con el ground controller/raycast, detectar cuando esta en el aire
+        /// para empezar a contar el tiempo, y luego de x segundos, permitir el combo
+        
+        collisionDiference = Vector3.Distance(collision.GetContact(0).normal, root.up);
+
+        string combo;
+        if (collisionDiference <= maxToPerfect)
+        {
+            combo = "<color=green>Perfect!</color>";
+            _impulsed = true;
+            _impulso = impulsePerfect;
+        }
+        else if (collisionDiference > maxToPerfect && collisionDiference <= maxToGood)
+        {
+            combo = "<color=orange>Good!</color>";
+        }
+        else
+        {
+            combo = "<color=red>Oc!</color>";
+            _impulsed = true;
+            _impulso = impulseOc;
+        }
+
+        Debug.Log($"Collision: <b>{collision.GetContact(0).normal}</b> / Root: <b>{root.up}</b> / Difference: <b>({collisionDiference})</b>\n{combo}");
     }
 }
