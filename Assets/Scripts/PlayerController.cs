@@ -8,11 +8,12 @@ public class PlayerController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Transform root;
     [SerializeField] private Camera cam;
+    [SerializeField] private GroundController groundController;
 
     public enum Estados { caminando, cargando, corriendo };
     [Header("Config estados")]
     [SerializeField] private Estados currentStatus;
-    [SerializeField] private float maxCaminando = 5;
+    [SerializeField, Tooltip("Velocidad maxima en el estado Caminando")] private float maxCaminando = 5;
     [SerializeField] private float maxCargando = 0.0001f;
     [SerializeField] private float maxCorriendo = 20;
 
@@ -54,7 +55,6 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;
     private PlayerInput playerInput;
-    private GroundController groundController;
     private Vector2 input;
     private Vector3 velocity;
     private float collisionDiference;
@@ -69,7 +69,6 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         playerInput = GetComponent<PlayerInput>();
-        groundController = GetComponent<GroundController>();
 
         SwithState(Estados.caminando);
     }
@@ -187,11 +186,11 @@ public class PlayerController : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        /// el jugador debe tener pasar un tiempo en el aire,
-        /// para que la proxima caida, ya si cuente el combo,
-        /// con el ground controller/raycast, detectar cuando esta en el aire
-        /// para empezar a contar el tiempo, y luego de x segundos, permitir el combo
-        
+        if (!groundController.airCoolDownReady)
+            return;
+
+        groundController.airCoolDownReady = false;
+
         collisionDiference = Vector3.Distance(collision.GetContact(0).normal, root.up);
 
         string combo;
