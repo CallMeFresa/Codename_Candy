@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc6aca06810bfb040b36ae0898567765, type: 3}
+  m_Name: Firebase Config
+  m_EditorClassIdentifier: Assembly-CSharp::FirebaseConfig
+  appId: 1:667261638547:web:fb3c03be65f94cedf43a66
+  apiKey: AIzaSyCM_BjyvWEQ4ApzsBaSVYH87rDKqtSgkao
+  messageSenderId: 667261638547
+  storageBucket: codename-candy.firebasestorage.app
+  projectId: codename-candy
+  DisplayName: Andres Camilo Urrego Restrepo
+  Email: acur97.tk@gmail.com
+  IsAnonymous: 0
+  IsEmailVerified: 0
+  PhoneNumber: 
+  ProviderId: Firebase
+  UserId: KxJFbXffqWRmM0jvvcmbfXNaGZI3
