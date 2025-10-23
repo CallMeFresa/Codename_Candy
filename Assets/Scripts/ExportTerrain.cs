@@ -23,6 +23,13 @@ class ExportTerrain : EditorWindow
     int totalCount;
     int progressUpdateInterval = 10000;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void Initialize()
+    {
+        terrain = null;
+        terrainPos = Vector3.zero;
+    }
+
     [MenuItem("Terrain/Export To Obj...")]
     static void Init()
     {
