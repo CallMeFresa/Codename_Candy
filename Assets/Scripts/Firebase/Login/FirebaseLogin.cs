@@ -1,17 +1,52 @@
 using Cysharp.Threading.Tasks;
 using Firebase;
+using Firebase.Auth;
+using System;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class FirebaseLogin : MonoBehaviour
 {
     [SerializeField] private FirebaseConfig config;
 
-    [Space]
-    [SerializeField] private string email;
-    [SerializeField] private string password;
-    [SerializeField] private string newName;
+    [Header("Panels")]
+    [SerializeField] private GameObject panel_start;
+    [SerializeField] private GameObject panel_login;
+    [SerializeField] private GameObject panel_forgotPassword;
+    [SerializeField] private GameObject panel_register;
+    [SerializeField] private GameObject panel_updateName;
 
-    private Firebase.Auth.FirebaseAuth auth;
+    [Header("Login")]
+    [SerializeField] private TMP_InputField login_email;
+    [SerializeField] private TMP_InputField login_password;
+
+    [Header("Forgot password")]
+    [SerializeField] private TMP_InputField forgot_email;
+
+    [Header("Register")]
+    [SerializeField] private TMP_InputField register_email;
+    [SerializeField] private GameObject register_emailMessage;
+    private bool register_emailCheck = false;
+
+    [SerializeField] private TMP_InputField register_password1;
+    [SerializeField] private TMP_InputField register_password2;
+    [SerializeField] private GameObject register_passwordMessage;
+    private bool register_passwordCheck = false;
+
+    [SerializeField] private Button register_btnCreate;
+
+    [Header("Update name")]
+
+    private FirebaseAuth auth;
+
+    private void Awake()
+    {
+        panel_start.SetActive(true);
+        panel_register.SetActive(false);
+        panel_login.SetActive(false);
+        panel_forgotPassword.SetActive(false);
+    }
 
     private void Start()
     {
@@ -19,53 +54,165 @@ public class FirebaseLogin : MonoBehaviour
         config.ClearUserInfo();
     }
 
-    [ContextMenu("Create User With Email And Password")]
-    public async UniTask CreateUserWithEmailAndPasswordAsync()
+    #region Login
+
+    #endregion
+
+    #region Forgot password
+
+    #endregion
+
+    #region Register
+    public void Register_SetActive()
     {
-        auth = Firebase.Auth.FirebaseAuth.DefaultInstance;
+        panel_register.SetActive(true);
+
+        register_emailMessage.SetActive(false);
+        register_passwordMessage.SetActive(false);
+        register_password1.contentType = TMP_InputField.ContentType.Password;
+        register_password2.contentType = TMP_InputField.ContentType.Password;
+
+        Register_CheckAll();
+    }
+
+    public void Register_CheckEmail(string email)
+    {
+        if (email.Contains("@") && email.Contains(".") && email.Length > 4)
+        {
+            register_emailCheck = true;
+            register_emailMessage.SetActive(false);
+        }
+        else
+        {
+            register_emailCheck = false;
+            register_emailMessage.SetActive(true);
+        }
+    }
+
+    public void Register_CheckPasswords()
+    {
+        if (register_password1.text == register_password2.text)
+        {
+            register_passwordCheck = true;
+            register_passwordMessage.SetActive(false);
+        }
+        else
+        {
+            register_passwordCheck = false;
+            register_passwordMessage.SetActive(true);
+        }
+    }
+
+    public void Register_ViewPassword1(bool on)
+    {
+        if (on)
+        {
+            register_password1.contentType = TMP_InputField.ContentType.Standard;
+        }
+        else
+        {
+            register_password1.contentType = TMP_InputField.ContentType.Password;
+        }
+
+        register_password1.enabled = false;
+        register_password1.enabled = true;
+    }
+
+    public void Register_ViewPassword2(bool on)
+    {
+        if (on)
+        {
+            register_password2.contentType = TMP_InputField.ContentType.Standard;
+        }
+        else
+        {
+            register_password2.contentType = TMP_InputField.ContentType.Password;
+        }
+
+        register_password2.enabled = false;
+        register_password2.enabled = true;
+    }
+
+    public void Register_CheckAll()
+    {
+        if (register_emailCheck && register_passwordCheck)
+        {
+            register_btnCreate.enabled = true;
+        }
+        else
+        {
+            register_btnCreate.enabled = false;
+        }
+    }
+
+    public void Register_CreateAccount()
+    {
+        PopUpManager.Instance.OpenPopUp("Creando usuario...");
+
+        CreateUserWithEmailAndPasswordAsync(register_email.text, register_password1.text, () =>
+        {
+            PopUpManager.Instance.OpenPopUp("Usuario Creado!", 2);
+
+            panel_register.SetActive(false);
+            panel_updateName.SetActive(true);
+        }).Forget();
+    }
+    #endregion
+
+    #region Commond Functions
+    [ContextMenu("Create User With Email And Password")]
+    public async UniTaskVoid CreateUserWithEmailAndPasswordAsync(string email, string password, Action OnComplete = null)
+    {
+        auth = FirebaseAuth.DefaultInstance;
 
         try
         {
-            Firebase.Auth.AuthResult result = await auth.CreateUserWithEmailAndPasswordAsync(email, password);
+            AuthResult result = await auth.CreateUserWithEmailAndPasswordAsync(email, password);
 
             config.SetUserInfo(result.User);
-            Debug.LogFormat($"Firebase user created successfully: {result.User.DisplayName} ({result.User.UserId})");
+
+            OnComplete?.Invoke();
         }
-        catch (System.Exception ex)
+        catch (FirebaseException e)
         {
-            Debug.LogError($"CreateUserWithEmailAndPasswordAsync encountered an error: {ex}");
+            PopUpManager.Instance.OpenPopUp(AuthErrorMessages.GetMessage(e.ErrorCode), 3);
+
+            Debug.LogError((AuthError)e.ErrorCode);
+            Debug.LogError(e.Message);
         }
     }
 
     [ContextMenu("SignIn With Email And Password")]
-    public async UniTask SignInWithEmailAndPasswordAsync()
+    public async UniTask SignInWithEmailAndPasswordAsync(string email, string password)
     {
-        auth = Firebase.Auth.FirebaseAuth.DefaultInstance;
+        auth = FirebaseAuth.DefaultInstance;
 
         try
         {
-            Firebase.Auth.AuthResult result = await auth.SignInWithEmailAndPasswordAsync(email, password);
+            AuthResult result = await auth.SignInWithEmailAndPasswordAsync(email, password);
 
             config.SetUserInfo(result.User);
             Debug.LogFormat($"User signed in successfully: {result.User.DisplayName} ({result.User.UserId})");
         }
-        catch (System.Exception ex)
+        catch (FirebaseException e)
         {
-            Debug.LogError($"SignInWithEmailAndPasswordAsync encountered an error: {ex}");
-            throw;
+            PopUpManager.Instance.OpenPopUp(AuthErrorMessages.GetMessage(e.ErrorCode), 3);
+
+            Debug.LogError((AuthError)e.ErrorCode);
+            Debug.LogError(e.Message);
         }
     }
 
     [ContextMenu("Update User Profile")]
-    public async UniTask UpdateUserProfileAsync()
+    public async UniTask UpdateUserProfileAsync(string name)
     {
-        Firebase.Auth.FirebaseUser user = auth.CurrentUser;
+        FirebaseUser user = auth.CurrentUser;
 
         if (user != null)
         {
-            Firebase.Auth.UserProfile profile = new()
+            UserProfile profile = new()
             {
-                DisplayName = newName,
+                DisplayName = name,
                 //PhotoUrl = new System.Uri("https://example.com/jane-q-user/profile.jpg")
             };
 
@@ -76,9 +223,12 @@ public class FirebaseLogin : MonoBehaviour
                 Debug.Log("User profile updated successfully.");
                 config.SetUserInfo(auth.CurrentUser);
             }
-            catch (System.Exception ex)
+            catch (FirebaseException e)
             {
-                Debug.LogError($"UpdateUserProfileAsync encountered an error: {ex}");
+                PopUpManager.Instance.OpenPopUp(AuthErrorMessages.GetMessage(e.ErrorCode), 3);
+
+                Debug.LogError((AuthError)e.ErrorCode);
+                Debug.LogError(e.Message);
             }
         }
     }
@@ -86,7 +236,7 @@ public class FirebaseLogin : MonoBehaviour
     [ContextMenu("Send Email Verification")]
     public async UniTask SendEmailVerificationAsync()
     {
-        Firebase.Auth.FirebaseUser user = auth.CurrentUser;
+        FirebaseUser user = auth.CurrentUser;
 
         if (user != null)
         {
@@ -96,17 +246,20 @@ public class FirebaseLogin : MonoBehaviour
 
                 Debug.Log("Email sent successfully.");
             }
-            catch (System.Exception ex)
+            catch (FirebaseException e)
             {
-                Debug.LogError($"SendEmailVerificationAsync encountered an error: {ex}");
+                PopUpManager.Instance.OpenPopUp(AuthErrorMessages.GetMessage(e.ErrorCode), 3);
+
+                Debug.LogError((AuthError)e.ErrorCode);
+                Debug.LogError(e.Message);
             }
         }
     }
 
     [ContextMenu("Update Password")]
-    public async UniTask UpdatePasswordAsync()
+    public async UniTask UpdatePasswordAsync(string password)
     {
-        Firebase.Auth.FirebaseUser user = auth.CurrentUser;
+        FirebaseUser user = auth.CurrentUser;
 
         if (user != null)
         {
@@ -116,17 +269,20 @@ public class FirebaseLogin : MonoBehaviour
 
                 Debug.Log("Password updated successfully.");
             }
-            catch (System.Exception ex)
+            catch (FirebaseException e)
             {
-                Debug.LogError($"UpdatePasswordAsync encountered an error: {ex}");
+                PopUpManager.Instance.OpenPopUp(AuthErrorMessages.GetMessage(e.ErrorCode), 3);
+
+                Debug.LogError((AuthError)e.ErrorCode);
+                Debug.LogError(e.Message);
             }
         }
     }
 
     [ContextMenu("Send Password Reset Email")]
-    public async UniTask SendPasswordResetEmailAsync()
+    public async UniTask SendPasswordResetEmailAsync(string email)
     {
-        Firebase.Auth.FirebaseUser user = auth.CurrentUser;
+        FirebaseUser user = auth.CurrentUser;
 
         if (user != null)
         {
@@ -136,9 +292,12 @@ public class FirebaseLogin : MonoBehaviour
 
                 Debug.Log("Password reset email sent successfully.");
             }
-            catch (System.Exception ex)
+            catch (FirebaseException e)
             {
-                Debug.LogError($"SendPasswordResetEmailAsync encountered an error: {ex}");
+                PopUpManager.Instance.OpenPopUp(AuthErrorMessages.GetMessage(e.ErrorCode), 3);
+
+                Debug.LogError((AuthError)e.ErrorCode);
+                Debug.LogError(e.Message);
             }
         }
     }
@@ -149,4 +308,5 @@ public class FirebaseLogin : MonoBehaviour
         auth.SignOut();
         Debug.Log("SingOut");
     }
+    #endregion
 }

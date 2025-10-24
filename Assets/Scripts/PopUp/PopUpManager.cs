@@ -36,22 +36,13 @@ public class PopUpManager : MonoBehaviour
         DisableRoot();
     }
 
-    [ContextMenu("Test PopUp")]
-    public void TestPopUp()
+    /// <summary>
+    /// Opens the PopUp only with text, needs to be closed manally!
+    /// </summary>
+    /// <param name="_text"></param>
+    public void OpenPopUp(string _text)
     {
-        OpenPopUp("Test PopUp", 2);
-    }
-
-    [ContextMenu("Test PopUp Button")]
-    public void TestPopUp2()
-    {
-        OpenPopUp("Test PopUp Using Only 1 Button", "tremendo");
-    }
-
-    [ContextMenu("Test PopUp Buttons")]
-    public void TestPopUp3()
-    {
-        OpenPopUp("Test PopUp Using Buttons", "", "Brutalisisimo", () => Debug.Log("Hi"));
+        OpenPopUp(_text, false, "", null, false, "", null);
     }
 
     /// <summary>
@@ -142,6 +133,7 @@ public class PopUpManager : MonoBehaviour
             rootButtons.SetActive(true);
         }
 
+        root.transform.localScale = Vector3.zero;
         LeanTween.scale(root, Vector3.one, 0.3f)
             .setEaseOutBack();
 
